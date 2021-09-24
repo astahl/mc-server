@@ -6,6 +6,9 @@ from pathlib import Path
 
 hostName = "0.0.0.0"
 serverPort = 8080
+worldDirectory = Path("worlds")
+jarsDirectory = Path("jars")
+
 
 def writeJsonResponse(self, obj, response=200):
     self.send_response(response)
@@ -22,14 +25,13 @@ def writeTxtResponse(self, message, response=200):
         
 
 def versions():
-    return [x for x in Path.cwd().iterdir() if x.is_dir()]
+    return [x.name for x in jarsDirectory.iterdir() if x.is_dir()]
 
 
 class MCControlServer(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/versions":
-            names = [path.name for path in versions()]
-            writeJsonResponse(self, names)
+            writeJsonResponse(self, versions())
         else:
             writeTxtResponse(self, "404 - File not found", 404)
         
