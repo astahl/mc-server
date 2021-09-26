@@ -1,36 +1,21 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
-import os
-from subprocess import Popen
-from pathlib import Path
-import subprocess
-import uuid
-
+import re
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib import parse
+from minecraft_service import MCS
 
 hostName = "0.0.0.0"
 serverPort = 8080
-worldDirectory = Path("worlds")
-jarsDirectory = Path("jars")
 
-
-def createWorld(version):
-    jarFile = jarsDirectory.joinpath(version).joinpath("server.jar")
-    id = uuid.uuid4()
-    worldPath = worldDirectory.joinpath(id.hex)
-    worldPath.mkdir(parents=True)
-    print("creating world %s" % id)
-    serverProcess = subprocess.run(["java", "-Xmx6G", "-Xms6G", "-jar", jarFile.resolve(), "nogui"], cwd=worldPath, capture_output=True)
-    print(serverProcess.stdout)
-
-
-def versions():
-    return [x.name for x in jarsDirectory.iterdir() if x.is_dir()]
-
+mcs = MCS()
 
 class MCControlServer(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/versions":
-            self.writeJsonResponse(versions())
+        url = parse.urlparse(self.path)
+        if url.path == "/versions":
+            self.writeJsonResponse(mcs.versions())
+        elif url.path == "/worlds":
+            self.writeJsonResponse(mcs.worlds())
         else:
             self.writeTxtResponse("404 - File not found", 404)
     
@@ -40,7 +25,9 @@ class MCControlServer(BaseHTTPRequestHandler):
             data = self.readJsonRequest()
             if data is None:
                 return
-            createWorld(data["version"])
+            worldId = mcs.createWorld(data["version"])
+            mcs.setEula(worldId, True)
+            mcs.startWorld(worldId)
 
     def writeJsonResponse(self, obj, response=200):
         serialized = json.dumps(obj)
