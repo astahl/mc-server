@@ -9,7 +9,9 @@ def parse_property_line(line):
         [key, value] = kvp.split("=", 1)
         key = key.strip()
         value = value.strip()
-        if value.lower() == "true":
+        if value == '':
+            value = None
+        elif value.lower() == "true":
             value = True
         elif value.lower() == "false":
             value = False
